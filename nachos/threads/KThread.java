@@ -2,6 +2,8 @@ package nachos.threads;
 
 import nachos.machine.*;
 
+import java.util.Queue;
+
 import java.util.LinkedList;
 
 /**
@@ -57,11 +59,11 @@ public class KThread {
      */
     public KThread() { // TASK 1
 
-        boolean currentState = Machine.interrupt().disable(); //disable machine interrupts
+        // boolean currentState = Machine.interrupt().disable(); //disable machine interrupts
 
-        WaitingOnThreadJoin.acquire(this); //allow waiting thread to grab the priority flag
+        // WaitingOnThreadJoin.acquire(this); //allow waiting thread to grab the priority flag
 
-        Machine.interrupt().restore(currentState); //enable machine interrupts
+        // Machine.interrupt().restore(currentState); //enable machine interrupts
 
         if (currentThread != null) {
 
@@ -201,7 +203,8 @@ public class KThread {
      * destroyed automatically by the next thread to run, when it is safe to delete
      * this thread.
      */
-    public static void finish() {
+    public static void finish() { //TASK 1
+
         Lib.debug(dbgThread, "Finishing thread: " + currentThread.toString());
 
         Machine.interrupt().disable();
@@ -211,17 +214,27 @@ public class KThread {
         Lib.assertTrue(toBeDestroyed == null);
         toBeDestroyed = currentThread;
 
+        if (LinkedThreads.size() > 0) { //if there is a thread within the linked list
+
+            boolean intStatus = Machine.interrupt().disable(); //disable machine interrupts
+
+            LinkedThreads.getFirst().ready(); //Take the first thread in the list and make it ready
+
+            Machine.interrupt().restore(intStatus); //enable interrupts
+
+        }
+
         currentThread.status = statusFinished;
 
         //TASK 1
 
-        KThread ThreadOnHold; //child of KThread class
+        //KThread ThreadOnHold; //child of KThread class
 
-        while ((ThreadOnHold = currentThread.WaitingOnThreadJoin.nextThread()) != null) { //while the next thread is not null/empty
+        // while ((ThreadOnHold = currentThread.WaitingOnThreadJoin.nextThread()) != null) { //while the next thread is not null/empty
 
-            ThreadOnHold.ready(); //we flag this thread as ready to join on another thread
+        //     ThreadOnHold.ready(); //we flag this thread as ready to join on another thread
 
-        }
+        // }
 
         sleep();
     }
@@ -311,19 +324,23 @@ public class KThread {
         // the following will only happen if thread is not finished running and the
         // current thread has not yet joined
 
-        boolean intStatus = Machine.interrupt().disable(); // disable interrupts
-
         if (status != statusFinished) { //if the current thread/process is not finished
 
-            WaitingOnThreadJoin.waitForAccess(currentThread); //We put the WaitingOnThreadJoin thread in the position to join the current thread
-
-            KThread.sleep(); //we put KThread to sleep
+            return;
 
         }
+
+        LinkedThreads.add(currentThread); //add the current thread to the linked threads list
+
+        boolean intStatus = Machine.interrupt().disable(); // disable interrupts
+
+        currentThread.sleep(); //put this current thread to sleep
 
         Machine.interrupt().restore(intStatus); // enable interrupts
 
     }
+
+    private static LinkedList<KThread> LinkedThreads = new LinkedList<KThread>(); //creating a linked list to store our threads
 
     /**
      * Create the idle thread. Whenever there are no threads ready to be run, and
@@ -477,7 +494,7 @@ public class KThread {
     private Runnable target;
     private TCB tcb;
 
-    ThreadQueue WaitingOnThreadJoin = ThreadedKernel.scheduler.newThreadQueue(true);
+    //ThreadQueue WaitingOnThreadJoin = ThreadedKernel.scheduler.newThreadQueue(true);
 
     /**
      * Unique identifer for this thread. Used to deterministically compare threads.
