@@ -2,6 +2,8 @@ package nachos.threads;
 
 import nachos.machine.*;
 
+import java.util.LinkedList;
+
 /**
  * A KThread is a thread that can be used to execute Nachos kernel code. Nachos
  * allows multiple threads to run concurrently.
@@ -189,8 +191,21 @@ public class KThread {
 	Machine.autoGrader().finishingCurrentThread();
 
 	Lib.assertTrue(toBeDestroyed == null);
-	toBeDestroyed = currentThread;
+    toBeDestroyed = currentThread;
+    
+    //TASK 1
 
+    if (LinkedThreads.size() > 0) { //If there is at least one thread in the list
+
+        boolean intStatus = Machine.interrupt().disable(); //disable interrupts
+
+        LinkedThreads.getFirst().ready(); //get the first thread in the linked list and make it ready
+
+        Machine.interrupt().restore(intStatus); //enable intterupts
+        
+        LinkedThreads.removeFirst(); //remove the first thread from the linked list
+
+    }
 
 	currentThread.status = statusFinished;
 	
@@ -272,12 +287,32 @@ public class KThread {
      * call is not guaranteed to return. This thread must not be the current
      * thread.
      */
-    public void join() {
-	Lib.debug(dbgThread, "Joining to thread: " + toString());
 
-	Lib.assertTrue(this != currentThread);
+    //TASK ONE
+
+    public void join() {
+
+        Lib.debug(dbgThread, "Joining to thread: " + toString());
+
+        Lib.assertTrue(this != currentThread);
+
+        if (this.status == statusFinished) { // If this thread has finished its process
+
+            return;
+
+        } //the following will only happen if thread is not finished running and the current thread has not yet joined
+
+        boolean intStatus = Machine.interrupt().disable(); //disable interrupts
+
+        LinkedThreads.add(currentThread); //add the current thread to the linked list of threads
+
+        currentThread.sleep(); //put the thread to sleep
+
+        Machine.interrupt().restore(intStatus); //enable interrupts
 
     }
+
+    private static LinkedList<KThread> LinkedThreads = new LinkedList<KThread>();
 
     /**
      * Create the idle thread. Whenever there are no threads ready to be run,
