@@ -65,13 +65,15 @@ public class PriorityScheduler extends Scheduler {
 
 		getThreadState(thread).setPriority(priority);
 	}
-
+	// Both these functions, inreasePriority and decreasePriority are used to sort the threads
 	public boolean increasePriority() {
 		boolean intStatus = Machine.interrupt().disable();
-
+		//Sets thread to current thread
 		KThread thread = KThread.currentThread();
 
+		//Retreaive priority
 		int priority = getPriority(thread);
+		//Stops increasing priority 
 		if (priority == priorityMaximum)
 			return false;
 
@@ -83,15 +85,13 @@ public class PriorityScheduler extends Scheduler {
 
 	public boolean decreasePriority() {
 		boolean intStatus = Machine.interrupt().disable();
-
 		KThread thread = KThread.currentThread();
 
 		int priority = getPriority(thread);
 		if (priority == priorityMinimum)
 			return false;
 
-		setPriority(thread, prior
-		ity - 1);
+		setPriority(thread, priority - 1);
 
 		Machine.interrupt().restore(intStatus);
 		return true;
@@ -133,11 +133,11 @@ public class PriorityScheduler extends Scheduler {
 			this.transferPriority = transferPriority;
 		}
 
-		private void cache() {
+		private void donation() {
 
 			// check for priority donation
 			if (this.resourceHolder != null && transferPriority) {
-				resourceHolder.cache();
+				resourceHolder.donation();
 			}
 
 			this.priorityCheck = true;
@@ -159,16 +159,18 @@ public class PriorityScheduler extends Scheduler {
 			this.resourceHolder = threads;
 			threads.acquire(this);
 		}
-
+		//function: takes next thread from wait 
 		public KThread nextThread() {
+
 			Lib.assertTrue(Machine.interrupt().disabled());
 
 			// implement me
 
-			// if waitingQueue isn't empty
+		// waitqueue can not be empty 
+		
 			if (!waitingQueue.isEmpty()) {
-				ThreadState nextThread = pickNextThread();
-				// make sure the thread pickNextThread returns isn't null
+				ThreadState nextThread = pickNextThread(); // picks next thread
+	
 				if (nextThread != null) {
 					// if it isn't, acquire that thread
 					acquire(nextThread.thread);
@@ -341,7 +343,7 @@ public class PriorityScheduler extends Scheduler {
 			Iterator<PriorityQueue> thread = waitingQueue.iterator();
 			while (thread.hasNext()) {
 
-				thread.next().cache();
+				thread.next().donation();
 			}
 		}
 
@@ -350,8 +352,8 @@ public class PriorityScheduler extends Scheduler {
 			// remove queue from resource queue
 			this.resourceQueue.remove(waitQueue);
 
-			// cache
-			cachePriority();
+			// donation
+			donationPriority();
 		}
 
 		/*
@@ -362,17 +364,16 @@ public class PriorityScheduler extends Scheduler {
 		public int calcMaxPriority() {
 
 			// current priority
-			int calcMaxEP = this.priority;
+			int calcMaxPriority = priority;
 
 			// iterate through the Priority queue
-			Iterator<PriorityQueue> thread = resourceQueue.iterator();
-			while (thread.hasNext()) {
+			for(PriorityQueue queue:resourceQueue)
 
 				// determine maximum priority by comparing w/ effective priority
-				calcMaxEP = Math.max(calcMaxEP, (thread.next()).getEffectivePriority());
+				calcMaxPriority = Math.max(calcMaxPriority, (thread.next()).getEffectivePriority());
 
 			} // return max priority from PriorityQueue
-			return calcMaxEP;
+			return calcMaxPriority;
 		}
 
 		// update effective priority
@@ -405,7 +406,7 @@ public class PriorityScheduler extends Scheduler {
 			}
 		}
 
-		private void cache() {
+		private void donated() {
 			if (this.priorityCheck)
 				return;
 			this.priorityCheck = true;
@@ -413,7 +414,7 @@ public class PriorityScheduler extends Scheduler {
 			Iterator<PriorityQueue> thread = waitingQueue.iterator();
 			while (thread.hasNext()) {
 
-				thread.next().cache();
+				thread.next().donated();
 			}
 		}
 
@@ -439,12 +440,12 @@ public class PriorityScheduler extends Scheduler {
 			// remove thread from resource queue
 			this.resourceQueue.remove(waitQueue);
 
-			waitQueue.cache();
+			waitQueue.donation();
 
 		}
 
-		public void cachePriority() {
-			this.cache();
+		public void donationPriority() {
+			this.donation();
 		}
 
 		/**
@@ -466,7 +467,7 @@ public class PriorityScheduler extends Scheduler {
 			// thread is no longer waiting, remove it!
 			waitQueue.waitingQueue.remove(this);
 
-			cachePriority();
+			donationPriority();
 		}
 	}
 }
