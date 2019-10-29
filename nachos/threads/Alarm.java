@@ -35,6 +35,8 @@ public class Alarm {
 
     Machine.interrupt().disable();
     //create a temp for sleeping thread
+    
+    SleepingThread temp;
     ThreadTime temp = sleepingThreads.peek();
         while(temp != null && temp.extendTime<Machine.timer().getTime()){
             
