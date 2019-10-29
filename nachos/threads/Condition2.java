@@ -59,7 +59,7 @@ public class Condition2 {
 
     //Check if threads are in the queue, remove the current from list and get it ready.
       if(!sleep_queue.isEmpty()) {
-        KThread awake_thread = conditionQueue.pop(); //pop from the list!
+        KThread awake_thread = sleep_queue.pop(); //pop from the list!
         awake_thread.ready();
       }
       Machine.interrupt().restore(intStatus);
