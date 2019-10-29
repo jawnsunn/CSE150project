@@ -33,15 +33,6 @@ public class Boat {
 		// Create threads here. See section 3.4 of the Nachos for Java
 		// Walkthrough linked from the projects page.
 
-		OahuAd = adults;
-		OahuCh = children;
-
-		PeopleOnBoat = Empty;
-
-		IsTheBoatOnOahu = true;
-
-		boatLock = new Lock(); //create a new lock called boatLock that takes from the Lock class
-
 		Runnable r = new Runnable() {
 			public void run() {
 				SampleItinerary();
@@ -76,28 +67,5 @@ public class Boat {
 		bg.AdultRideToMolokai();
 		bg.ChildRideToMolokai();
 	}
-
-	// Creating our Global variables
-
-	static int OahuAd; // amount of adults on Oahu
-	static int OahuCh; // amount of children on oahu
-
-	static int PeopleOnBoat; // later we will set this equal to either empty, half, or full
-
-	static final int Empty = 0; // 0 people, or we can just throw this away and use 0
-	static final int HalfFull = 1; // 1 person, or we can throw this away and just use 1
-	static final int Full = 2; // 2 people, or we can throw this away and just use 2
-
-	static boolean IsTheBoatOnOahu; // will be T or F statement
-
-	static Lock boatLock; // lock for all components
-
-	static Semaphore complete; // this thread/process has finished
-
-	static Condition2 sleepForOahuAd; // puts adults on Oahu to sleep
-	static Condition2 sleepForOahuCh; // puts children on Oahu to sleep
-
-	static Condition2 sleepForMoloAd; // puts adults on Molokai to sleep
-	static Condition2 sleepForMoloCh; // puts children on Molokai to sleep
 
 }
