@@ -30,7 +30,7 @@ public class Boat
 		waitingChildrenOnOahu = new Condition(conLock);
 		waitingChildrenOnMolokai = new Condition(conLock);
 		waitingAdultsOnMolokai = new Condition(conLock);
-		
+
 		boatOnMolokai = false;
 		boat = empty;
 
@@ -57,66 +57,68 @@ public class Boat
 			t.fork(); 
 		}
 
-		
+
 	}
 
 
 
 	static void AdultItinerary(){	
 		conLock.acquire();
-		if(boat == empty && boatOnMolokai == false && childrenOnOahu < 2) {
-			adultsOnOahu--;
-			bg.AdultRideToMolokai();
-			boatOnMolokai = true;
-			waitingChildrenOnMolokai.wakeAll();
-			waitingAdultsOnMolokai.sleep();
-		}
-		else
-			waitingAdultsOnOahu.sleep();
-		
-	}
+		while(true) {
+			if(boat == empty && boatOnMolokai == false && childrenOnOahu < 2) {
+				adultsOnOahu--;
+				bg.AdultRideToMolokai();
+				boatOnMolokai = true;
+				waitingChildrenOnMolokai.wakeAll();
+				waitingAdultsOnMolokai.sleep();
+			}
+			else
+				waitingAdultsOnOahu.sleep();
 
+		}
+	}
 
 
 	static void ChildItinerary(){
 		boolean onMolokai = false;
 		conLock.acquire();
-		if(onMolokai == false && boatOnMolokai == false && boat == empty) {
-			childrenOnOahu--;
-			bg.ChildRowToMolokai();
-			onMolokai = true;
-			if(childrenOnOahu > 0) {
-				boat = halfFull;
-				waitingChildrenOnOahu.wakeAll();
+		while(true) {
+			if(onMolokai == false && boatOnMolokai == false && boat == empty) {
+				childrenOnOahu--;
+				bg.ChildRowToMolokai();
+				onMolokai = true;
+				if(childrenOnOahu > 0) {
+					boat = halfFull;
+					waitingChildrenOnOahu.wakeAll();
+				}
+				else {
+					boatOnMolokai = true;
+					boat = empty;
+					waitingChildrenOnMolokai.wakeAll();
+				}
+				waitingChildrenOnMolokai.sleep();
 			}
-			else {
+			else if(onMolokai == false && boatOnMolokai == false && boat == halfFull) {
+				childrenOnOahu--;
+				bg.ChildRideToMolokai();
+				onMolokai = true;
 				boatOnMolokai = true;
 				boat = empty;
 				waitingChildrenOnMolokai.wakeAll();
+				waitingChildrenOnMolokai.sleep();
 			}
-			waitingChildrenOnMolokai.sleep();
-		}
-		else if(onMolokai == false && boatOnMolokai == false && boat == halfFull) {
-			childrenOnOahu--;
-			bg.ChildRideToMolokai();
-			onMolokai = true;
-			boatOnMolokai = true;
-			boat = empty;
-			waitingChildrenOnMolokai.wakeAll();
-			waitingChildrenOnMolokai.sleep();
-		}
-		else if(onMolokai == false && boatOnMolokai == false && boat == full)
-			waitingChildrenOnOahu.sleep();
-		else {
-			if(boatOnMolokai == true) {
-				childrenOnOahu++;
-				bg.ChildRideToOahu();
-				boatOnMolokai = false;
-				waitingAdultsOnOahu.wakeAll();
-				waitingChildrenOnOahu.wakeAll();
+			else if(onMolokai == false && boatOnMolokai == false && boat == full)
+				waitingChildrenOnOahu.sleep();
+			else {
+				if(boatOnMolokai == true) {
+					childrenOnOahu++;
+					bg.ChildRideToOahu();
+					boatOnMolokai = false;
+					waitingAdultsOnOahu.wakeAll();
+					waitingChildrenOnOahu.wakeAll();
+				}
 			}
 		}
-			
 	}
 
 	static void SampleItinerary(){
