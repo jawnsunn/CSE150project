@@ -23,25 +23,16 @@ public class Boat
 		bg = b;
 
 		// Instantiate global variables here      
-		int totalOfChildren = children;
-		int totalOfAdults = adults;
+		int childrenOnOahu = children;
+		int adultsOnOahu = adults;
 		conLock = new Lock();
-		adultsOnOahu = new Condition(conLock);
-		childrenOnOahu = new Condition(conLock);
-		childrenOnMolokai = new Condition(conLock);
-		waitingOnBoat = new Condition(conLock);
-		bProb = new Condition(conLock);
-		childWaiting = new LinkedList<KThread>();
+		waitingAdultsOnOahu = new Condition(conLock);
+		waitingChildrenOnOahu = new Condition(conLock);
+		waitingChildrenOnMolokai = new Condition(conLock);
+		waitingAdultsOnMolokai = new Condition(conLock);
 		
-		bLocationOahu = true;
+		boatOnMolokai = false;
 		boat = empty;
-		
-
-		rChildrenOnMolokai = 0;
-		rAdultsOnMolokai = 0;     
-		rChildrenOnOahu = 0; 
-		rAdultsOnOahu = 0;	
-		lChildrenOnOahu = 0;
 
 
 		for(int i = 0; i < adults; i++){
@@ -66,164 +57,66 @@ public class Boat
 			t.fork(); 
 		}
 
-		done = false;
-		waitingNext = false;
-		nextToBeOnBoat = false;
-		onBoat = false;
-
-		conLock.acquire();
-
-		if(locationOahu == false && rAdultsOnMolokai == totalOfAdults && rChildrenOnMolokai == totalOfChildren){
-			isDone = true;
-		}
-		else{
-			isDone = false;
-		}
-
-		while(isDone == false){ 
-			bProb.sleep();
-		}
-
-		done = true; 
-		childrenOnOahu.wakeAll();
-		childrenOnMolokai.wakeAll();
-		adultsOnOahu.wakeAll();
-		conLock.release();
+		
 	}
 
 
 
-	static void AdultItinerary()
-	{	
+	static void AdultItinerary(){	
 		conLock.acquire();
-		rAdultsOnOahu++; 	
-		
-		while(locationOahu == true) {
-			if(boat == empty && bLocationOahu && totalOfChildren <=1) {
-				locationOahu = false;
-				totalOfAdults--;
-				bLocationOahu = false;
-				bg.AdultRowToMolokai();
-				if(totalOfAdults == 0 && totalOfChildren == 0) {
-					adultsOnOahu.sleep();
-				}
-				childrenOnMolokai.wakeAll();
-				adultsOnOahu.sleep();
-			}
-			else
-				adultsOnOahu.sleep();
+		if(boat == empty && boatOnMolokai == false && childrenOnOahu < 2) {
+			adultsOnOahu--;
+			bg.AdultRideToMolokai();
+			boatOnMolokai = true;
+			waitingChildrenOnMolokai.wakeAll();
+			waitingAdultsOnMolokai.sleep();
 		}
-		childrenOnMolokai.wake();
-		conLock.release();
+		else
+			waitingAdultsOnOahu.sleep();
+		
 	}
 
 
 
 	static void ChildItinerary(){
+		boolean onMolokai = false;
 		conLock.acquire();
-		rChildrenOnOahu++;
-
-		if(locationOahu == true){
-			if( KThread.currentThread().getName() == "Child Thread is on Oahu" && childWaiting.size() < 2){
-				caseOfChildren = 1;
+		if(onMolokai == false && boatOnMolokai == false && boat == empty) {
+			childrenOnOahu--;
+			bg.ChildRowToMolokai();
+			onMolokai = true;
+			if(childrenOnOahu > 0) {
+				boat = halfFull;
+				waitingChildrenOnOahu.wakeAll();
 			}
-			else{
-				caseOfChildren = 0;
+			else {
+				boatOnMolokai = true;
+				boat = empty;
+				waitingChildrenOnMolokai.wakeAll();
+			}
+			waitingChildrenOnMolokai.sleep();
+		}
+		else if(onMolokai == false && boatOnMolokai == false && boat == halfFull) {
+			childrenOnOahu--;
+			bg.ChildRideToMolokai();
+			onMolokai = true;
+			boatOnMolokai = true;
+			boat = empty;
+			waitingChildrenOnMolokai.wakeAll();
+			waitingChildrenOnMolokai.sleep();
+		}
+		else if(onMolokai == false && boatOnMolokai == false && boat == full)
+			waitingChildrenOnOahu.sleep();
+		else {
+			if(boatOnMolokai == true) {
+				childrenOnOahu++;
+				bg.ChildRideToOahu();
+				boatOnMolokai = false;
+				waitingAdultsOnOahu.wakeAll();
+				waitingChildrenOnOahu.wakeAll();
 			}
 		}
-		else{
-			if(KThread.currentThread().getName() == "Child Thread on Molokai"){
-				caseOfChildren = 1;
-			}
-			else{
-				caseOfChildren = 0; 
-			}
-		}
-
-		while(!done){
-			while(caseOfChildren == 0){      
-				if(locationOahu == true){
-					childrenOnOahu.wake(); 
-					childrenOnMolokai.sleep();
-				}
-				else{
-					childrenOnMolokai.wake(); 
-					childrenOnOahu.sleep();
-				}
-				adultsOnOahu.wake(); 
-			}	
-
-			if(!done){
-				if(locationOahu == true){
-					if(!waitingNext){ 
-						rChildrenOnOahu--;
-						lChildrenOnOahu = rChildrenOnOahu;
-						lAdultsOnOahu = rAdultsOnOahu;
-						bg.ChildRowToMolokai();	
-						KThread.currentThread().setName("Child Thread is on the Boat");
-						waitingNext = true; 
-						nextToBeOnBoat = true;
-						childWaiting.add(KThread.currentThread());
-					}
-					else{
-						rChildrenOnOahu--; 	
-						lChildrenOnOahu = rChildrenOnOahu;
-						lAdultsOnOahu = rAdultsOnOahu;
-						bg.ChildRideToMolokai();
-						locationOahu = false; 	
-						KThread.currentThread().setName("Child Thread is on Molokai");
-						KThread firstChild = childWaiting.removeFirst();
-						firstChild.setName("Child Thread is on Molokai");
-						rChildrenOnMolokai = rChildrenOnMolokai + 2;
-						waitingNext = false;
-					}
-				}
-				else{ 
-					bg.ChildRowToOahu();
-					rChildrenOnOahu++;
-					KThread.currentThread().setName("Child Thread is on Oahu");
-					locationOahu = true;
-				}
-
-				if(locationOahu == false && lAdultsOnOahu == 0 && lChildrenOnOahu == 0){
-					almostDone = true;
-				}
-				else{
-					almostDone = false;
-				}
-
-				if(almostDone){    
-					bProb.wake();
-					adultsOnOahu.wake(); 
-					childrenOnMolokai.sleep();
-				}
-				else{
-					if(nextToBeOnBoat){
-						childrenOnOahu.wake();
-						nextToBeOnBoat = false;
-						onBoat = true;
-						waitingOnBoat.sleep();			
-					}
-					else{
-						if(locationOahu == true){
-							childrenOnOahu.wake();
-							adultsOnOahu.wake();
-							childrenOnOahu.sleep();
-						}
-						else{
-							if(onBoat){
-								waitingOnBoat.wake();
-								onBoat = false;
-							}
-							childrenOnMolokai.wake();	
-							adultsOnOahu.wake();
-							childrenOnMolokai.sleep();  
-						}
-					}
-				}
-			}
-		}
-		conLock.release();
+			
 	}
 
 	static void SampleItinerary(){
@@ -234,32 +127,15 @@ public class Boat
 		bg.ChildRideToMolokai();
 	}
 
-	private static Condition bProb;
-	private static Condition adultsOnOahu;
-	private static Condition childrenOnOahu;
-	private static Condition childrenOnMolokai;
-	private static Condition waitingOnBoat;
+	private static Condition waitingAdultsOnOahu;
+	private static Condition waitingChildrenOnOahu;
+	private static Condition waitingAdultsOnMolokai;
+	private static Condition waitingChildrenOnMolokai;
 	private static Lock conLock;
-	private static LinkedList<KThread> childWaiting;
 
-	private static boolean locationOahu;
-	
-	private static boolean done;
-	private static boolean waitingNext; 
-	private static boolean nextToBeOnBoat;
-	private static boolean onBoat;
-	private static boolean isDone;
-	private static boolean almostDone;
-	private static boolean bLocationOahu;
+	private static boolean boatOnMolokai;
 
-	private static int totalOfAdults, totalOfChildren;
-	private static int caseOfChildren;
-	private static int boat, empty = 0; 
-	private static int lAdultsOnOahu;
-	private static int lChildrenOnOahu;
-	private static int rChildrenOnOahu; 
-	private static int rAdultsOnOahu;   
-	private static int rChildrenOnMolokai;
-	private static int rAdultsOnMolokai;
+	private static int adultsOnOahu, childrenOnOahu;
+	private static int boat, empty = 0, halfFull = 1, full = 2; 
 
 }
