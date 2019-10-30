@@ -302,15 +302,15 @@ public class KThread {
 
         if (this.status != statusFinished) { //if the current thread/process is not finished
 
-            ThreadQueue WaitingThread = ThreadedKernel.scheduler.newThreadQueue(true);
+            ThreadQueue WaitingThread = ThreadedKernel.scheduler.newThreadQueue(true); //create a new thread queue 
 
-            WaitingThread.acquire(this);
+            WaitingThread.acquire(this); //allows "this" to have the priority key for WaitingThread
 
             WaitingThread.waitForAccess(currentThread); //we put the current thread in the queue so it may pass on its priority
 
-            while(this.status != statusFinished) {
+            while (this.status != statusFinished) { //while the status of 'this' does not equal finished
 
-                KThread.yield();
+                KThread.yield(); //have KThread yield implying we say our current thread is still running 
 
             }
 
