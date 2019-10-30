@@ -32,7 +32,6 @@ public class Boat
 		waitingOnBoat = new Condition(conLock);
 		bProb = new Condition(conLock);
 		childWaiting = new LinkedList<KThread>();
-		location = "Oahu";
 		
 		bLocationOahu = true;
 		boat = empty;
@@ -143,7 +142,7 @@ public class Boat
 
 		while(!done){
 			while(caseOfChildren == 0){      
-				if(location == "Oahu"){
+				if(locationOahu == true){
 					childrenOnOahu.wake(); 
 					childrenOnMolokai.sleep();
 				}
@@ -171,7 +170,7 @@ public class Boat
 						lChildrenOnOahu = rChildrenOnOahu;
 						lAdultsOnOahu = rAdultsOnOahu;
 						bg.ChildRideToMolokai();
-						location = "Molokai"; 	
+						locationOahu = false; 	
 						KThread.currentThread().setName("Child Thread is on Molokai");
 						KThread firstChild = childWaiting.removeFirst();
 						firstChild.setName("Child Thread is on Molokai");
@@ -183,7 +182,7 @@ public class Boat
 					bg.ChildRowToOahu();
 					rChildrenOnOahu++;
 					KThread.currentThread().setName("Child Thread is on Oahu");
-					location = "Oahu";
+					locationOahu = true;
 				}
 
 				if(locationOahu == false && lAdultsOnOahu == 0 && lChildrenOnOahu == 0){
@@ -241,7 +240,6 @@ public class Boat
 	private static Condition childrenOnMolokai;
 	private static Condition waitingOnBoat;
 	private static Lock conLock;
-	private static String location; 
 	private static LinkedList<KThread> childWaiting;
 
 	private static boolean locationOahu;
